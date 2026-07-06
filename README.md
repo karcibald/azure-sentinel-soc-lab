@@ -31,7 +31,7 @@ New-Object System.Net.Sockets.TcpClient("YOUR_VM_IP", 22)
 
 This simulated attack bypassed application layer errors to guarantee that a transport-layer cryptographic handshake was successfully cataloged inside the sshd daemon logging tables.
 
-Phase 3: Live Incident Triage & KQL Analysis
+### Phase 3: Live Incident Triage & KQL Analysis
 Within minutes of activation, automated global botnets initiated brute-force credential-stuffing campaigns against vm1. Custom KQL correlation analytics were built to parse and map the traffic spikes:
 <img width="1127" height="827" alt="195 178 110 217" src="https://github.com/user-attachments/assets/ebe0c65a-9f8b-4fc4-a56f-cd4b85744627" />
 
@@ -45,7 +45,7 @@ Syslog
 | top 10 by AttemptCount
 High-Severity Incidents were automatically triggered within Sentinel as external nodes concurrently hammered system accounts (root, admin).
 
-Phase 4: OSINT Enrichment & BGP Routing Deep-Dives
+### Phase 4: OSINT Enrichment & BGP Routing Deep-Dives
 Pivoting on a highly active attacking entity signature (195.178.110.217), external Open Source Intelligence (OSINT) tools were introduced to reconstruct the threat actor's profile:
 
 AbuseIPDB Lookup: Confirmed a 100% Abuse Confidence Score with thousands of historical global abuse records, resolving to a hosting center in Amsterdam, Netherlands.
