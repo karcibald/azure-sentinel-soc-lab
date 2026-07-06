@@ -1,105 +1,268 @@
-# azure-sentinel-soc-lab
-Cloud-native SIEM engineering project utilizing Microsoft Sentinel to ingest Linux syslog telemetry, map persistent brute-force infrastructure, and deploy proactive threat intelligence watchlists.
+# ☁️ Azure Sentinel SOC Lab
 
-# Cloud SIEM Engineering: End-to-End Threat Detection & Infrastructure Mapping in Microsoft Sentinel
-
-## 📑 Executive Summary
-This project demonstrates the deployment of an enterprise-grade cloud Security Operations Center (SOC) framework leveraging **Microsoft Sentinel (SIEM)**. The objective was to expose a vulnerable public-facing Linux asset (`vm1`), analyze real-time malicious ingestion metrics via **Kusto Query Language (KQL)**, enrich localized alerts with open-source threat intelligence (OSINT), map adversary infrastructure via global BGP routing topologies, and build custom watchlists to minimize corporate risk.
+> **Enterprise cloud SIEM project demonstrating end-to-end threat detection, investigation, threat intelligence enrichment, and incident response using Microsoft Sentinel.**
 
 ---
 
-## 🏗️ Architectural Framework & Skillsets
-* **Cloud Infrastructure:** Microsoft Azure (Virtual Machines, Network Security Groups, Log Analytics Workspaces)
-* **SIEM Analytics:** Microsoft Sentinel
-* **Query & Scripting Languages:** Kusto Query Language (KQL), PowerShell (Raw TCP Network Sockets)
-* **Core Domains:** Open Source Intelligence (OSINT), Border Gateway Protocol (BGP) Topology, Digital Forensics & Incident Response (DFIR), Defensive Architecture (Whitelisting/Hardening)
+## 📖 Overview
+
+This project demonstrates the deployment of a cloud-native Security Operations Center (SOC) using **Microsoft Azure** and **Microsoft Sentinel**.
+
+A deliberately exposed Linux virtual machine was deployed to simulate a vulnerable internet-facing asset. After enabling centralized log collection, the environment attracted real-world brute-force attacks from automated threat actors within minutes.
+
+Using Microsoft Sentinel and Kusto Query Language (KQL), authentication failures were investigated, malicious infrastructure was enriched with OSINT, mapped to Autonomous Systems (ASNs), and operationalized through custom Sentinel Watchlists before hardening the environment.
 
 ---
 
-## 🛠️ Phase-by-Phase Technical Walkthrough
+## 🎯 Project Objectives
 
-### Phase 1: Environment Provisioning & Logging Ingestion Pipelines
-* Provisioned an unhardened Linux Virtual Machine (`vm1`) exposed to the public internet via an open **SSH (Port 22)** configuration to serve as an authentic honeypot hone.
-* Established an Azure Log Analytics Workspace (`soc-log-workspace`) and onboarded **Microsoft Sentinel**.
-* Configured native security logs forwarding policies to stream operating-system level authentication and access logs directly into the centralized SIEM datastore.
-* 
+* Deploy a cloud-based SIEM solution
+* Collect Linux Syslog telemetry
+* Detect SSH brute-force attacks
+* Investigate attacker infrastructure
+* Enrich alerts with OSINT intelligence
+* Build custom Sentinel Watchlists
+* Harden cloud perimeter security
 
-### Phase 2: Threat Emulation (Controlled Baselines)
-To validate ingestion health and establish a verified baseline, an adversarial simulation was executed locally from an administrative workspace using raw Windows PowerShell network sockets:
+---
+
+## 🏗️ Architecture
+
+```text
+                 Internet
+                     │
+        Automated SSH Attackers
+                     │
+                     ▼
+           Azure Linux VM (vm1)
+                     │
+                 Syslog Agent
+                     │
+                     ▼
+        Log Analytics Workspace
+                     │
+                     ▼
+          Microsoft Sentinel
+                     │
+      ┌──────────────┴──────────────┐
+      │                             │
+ KQL Detection               Watchlists
+      │                             │
+      └──────────────┬──────────────┘
+                     │
+                     ▼
+        Threat Investigation
+                     │
+                     ▼
+      OSINT + ASN/BGP Enrichment
+                     │
+                     ▼
+      Security Hardening (NSG)
+```
+
+---
+
+# 🛠️ Technologies Used
+
+| Category             | Technology                     |
+| -------------------- | ------------------------------ |
+| Cloud Platform       | Microsoft Azure                |
+| SIEM                 | Microsoft Sentinel             |
+| Log Collection       | Azure Log Analytics            |
+| Operating System     | Ubuntu Linux                   |
+| Query Language       | Kusto Query Language (KQL)     |
+| Scripting            | PowerShell                     |
+| Threat Intelligence  | AbuseIPDB                      |
+| Network Intelligence | Hurricane Electric BGP Toolkit |
+| Networking           | Network Security Groups (NSG)  |
+
+---
+
+# 📌 Phase 1 – Environment Deployment
+
+Resources deployed:
+
+* Azure Resource Group
+* Ubuntu Linux Virtual Machine (`vm1`)
+* Public IP Address
+* Network Security Group
+* Log Analytics Workspace
+* Microsoft Sentinel
+
+The VM was intentionally configured with an unrestricted inbound SSH rule to attract internet-wide scanning activity and generate authentic security telemetry.
+
+---
+
+# 📌 Phase 2 – Connectivity Validation
+
+Before monitoring production traffic, SSH connectivity was validated using a raw TCP connection from PowerShell.
+
 ```powershell
-New-Object System.Net.Sockets.TcpClient("YOUR_VM_IP", 22)
+New-Object System.Net.Sockets.TcpClient("YOUR_VM_IP",22)
+```
 
-This simulated attack bypassed application layer errors to guarantee that a transport-layer cryptographic handshake was successfully cataloged inside the sshd daemon logging tables.
+This confirmed successful communication over TCP port 22 and verified that authentication events were being ingested into Sentinel.
 
-### Phase 3: Live Incident Triage & KQL Analysis
-Within minutes of activation, automated global botnets initiated brute-force credential-stuffing campaigns against vm1. Custom KQL correlation analytics were built to parse and map the traffic spikes:
-<img width="1127" height="827" alt="195 178 110 217" src="https://github.com/user-attachments/assets/ebe0c65a-9f8b-4fc4-a56f-cd4b85744627" />
+---
 
+# 📌 Phase 3 – Detecting SSH Brute Force Activity
 
-Code snippet
+Within minutes, automated internet scanners began attempting SSH logins against the Linux VM.
+
+The following KQL query identified the most active attacking IP addresses.
+
+```kql
 Syslog
 | where ProcessName == "sshd"
-| where SyslogMessage has "Failed password" or SyslogMessage has "invalid user"
-| extend AttackingIP = extract(@"from ([0-9.]+)", 1, SyslogMessage)
-| summarize AttemptCount = count() by AttackingIP, Computer
-| top 10 by AttemptCount
-High-Severity Incidents were automatically triggered within Sentinel as external nodes concurrently hammered system accounts (root, admin).
+| where SyslogMessage has "Failed password"
+    or SyslogMessage has "invalid user"
+| extend AttackingIP = extract(@"from ([0-9.]+)",1,SyslogMessage)
+| summarize Attempts=count() by AttackingIP, Computer
+| top 10 by Attempts
+```
+<img width="1000" height="700" alt="195 178 110 217" src="https://github.com/user-attachments/assets/9978f98b-3d31-4958-ac46-13954e77ef7f" />
+---
 
-### Phase 4: OSINT Enrichment & BGP Routing Deep-Dives
-Pivoting on a highly active attacking entity signature (195.178.110.217), external Open Source Intelligence (OSINT) tools were introduced to reconstruct the threat actor's profile:
+# 📌 Phase 4 – Threat Intelligence Enrichment
 
-AbuseIPDB Lookup: Confirmed a 100% Abuse Confidence Score with thousands of historical global abuse records, resolving to a hosting center in Amsterdam, Netherlands.
-<img width="827" height="797" alt="AbuseIPDB" src="https://github.com/user-attachments/assets/95210fbe-e7ad-4770-a756-6aecc180c289" />
-
-Hurricane Electric BGP Toolkit: Escalated the triage to network infrastructure routing layers. Discovered that the target IP lies within the 195.178.110.0/24 subnet managed under Autonomous System Number AS48090.
-<img width="1526" height="922" alt="image" src="https://github.com/user-attachments/assets/aa823566-7a0d-4c08-8c30-3165e78350ef" />
-
-Operational Insight: While geolocated to Andorra by internal SIEM maps and Amsterdam by active proxies, the regional registry allocation (RIPE NCC) traced back to Bulgaria (BG) under a United Kingdom ASN registration. This layout highlights classic adversary proxy/VPS chaining used to obfuscate operational origins.
-
-<img width="1312" height="305" alt="image" src="https://github.com/user-attachments/assets/217ddc41-3c3e-4d76-8591-0ca3d666a77f" />
+One particularly active attacker was selected for further investigation.
+<img width="1000" height="700" alt="sentinel-incident-triage" src="https://github.com/user-attachments/assets/5a5d3916-860e-44d1-9533-a323991f4f11" />
 
 
-Phase 5: Operationalizing Threat Intelligence via Sentinel Watchlists
-To optimize analytical detection over static, processing-heavy query logic, a custom threat intelligence Watchlist (KnownMaliciousHostingIPs) was engineered into the SIEM database.
-<img width="1240" height="807" alt="sentinel-watchlist-correlation" src="https://github.com/user-attachments/assets/3a144b67-cce1-4620-a1b5-9ea608c30861" />
+**Observed IP**
 
+```
+195.178.110.217
+```
 
-By parsing incoming streams dynamically against the watchlist array using structured sub-second relational lookups, high-fidelity security alerts were achieved:
+Using AbuseIPDB:
 
-Code snippet
-let MaliciousThreatIntel = _GetWatchlist('KnownMaliciousHostingIPs') | project IpAddress;
-Syslog
-| where ProcessName == "sshd"
-| extend AttackingIP = extract(@"from ([0-9.]+)", 1, SyslogMessage)
-| where AttackingIP in (MaliciousThreatIntel)
-| project TimeGenerated, Computer, AttackingIP, SyslogMessage
-Phase 6: Perimeter Containment & Remediation
-Following data collection, incident response remediation protocols were deployed:
+* Abuse Confidence Score: **100%**
+* Report Count: **8,500+**
+* ISP: **TECHOFF SRV LIMITED**
 
-Navigated to the cloud fabric boundary at the Azure Network Security Group (NSG) level.
-
-Reconfigured the perimeter rule for Port 22 from Any to IP Addresses, explicitly whitelisting only the administrator's trusted public workstation.
-
-Effectively dropped all unauthorized global scanner probes at the cloud edge before reaching the internal OS platform layer.
-
-📈 Analytical Conclusion & Strategic Takeaways
-Automated Exploitation Scale: Threat actors programmatically harvest internet-facing subnets within minutes of creation; perimeter defense-in-depth is mandatory.
-
-Telemetry Optimization: Leveraging native tools like Sentinel Watchlists cuts down CPU overhead during multi-gigabyte log cross-correlations.
-
-The Analyst Mindset: True threat detection requires moving beyond a simple IP alert; pivoting to subnets, ASNs, and BGP peering networks reveals the true scale of adversarial operations.
+The IP had extensive historical abuse records associated with brute-force attacks.
+<img width="827" height="797" alt="AbuseIPDB" src="https://github.com/user-attachments/assets/e65c9006-64a1-4df6-a8d6-156a021a1149" />
 
 
 ---
 
-### 🖼️ Recommended Image Mapping Sequence
-To match the high quality of your write-up, upload your screenshots into an `images` directory in the repository and embed them into the Markdown text using the following format:
+# 📌 Phase 5 – Infrastructure Mapping
 
-1. **Initial Shell Failures/Validation:** Reference `image_499d06.png` or your working PowerShell TCP handshake to demonstrate the initial validation phase.
-2. **The Sentinel Incident Board:** Embed `image_4a09c6.png` or `image_f9c07e.png` to display active incident lists.
-3. **The Investigation Panel:** Use `image_fa3823.png` to document the visual alert spike timeline.
-4. **OSINT Verification:** Place `image_fa432a.png` (AbuseIPDB 100% rating) to highlight the threat classification phase.
-5. **BGP/Network Topology:** Embed `image_faa583.png` or `image_faa8e2.png` to highlight structural network footprinting capabilities.
-6. **Watchlist Validation:** Conclude with `image_fabbc9.png` to show the successful live KQL execution against your custom threat-intel matrix.
+Rather than stopping at the individual IP address, the investigation expanded to the underlying network infrastructure.
 
-Name your files clearly (e.g., `sentinel-triage.png`, `bgp-routing.png`) so your repository looks
+Using the Hurricane Electric BGP Toolkit:
+
+| Property     | Value               |
+| ------------ | ------------------- |
+| ASN          | AS48090             |
+| Organization | TECHOFF SRV LIMITED |
+| Prefix       | 195.178.110.0/24    |
+| Registry     | RIPE NCC            |
+
+This demonstrates how analysts can pivot from a single indicator to the broader hosting infrastructure responsible for malicious activity.
+
+---
+
+# 📌 Phase 6 – Sentinel Watchlists
+
+To improve detection efficiency, malicious infrastructure was operationalized through a custom Sentinel Watchlist.
+<img width="1240" height="807" alt="sentinel-watchlist-correlation" src="https://github.com/user-attachments/assets/da9ee895-0cd2-41d9-825b-bd4728dcd6aa" />
+
+
+```kql
+let MaliciousThreatIntel =
+_GetWatchlist('KnownMaliciousHostingIPs')
+| project IpAddress;
+
+Syslog
+| where ProcessName == "sshd"
+| extend AttackingIP = extract(@"from ([0-9.]+)",1,SyslogMessage)
+| where AttackingIP in (MaliciousThreatIntel)
+| project TimeGenerated,
+          Computer,
+          AttackingIP,
+          SyslogMessage
+```
+
+Watchlists provide lightweight, reusable threat intelligence without requiring complex KQL joins for every query.
+
+---
+
+# 📌 Phase 7 – Incident Response
+
+After sufficient evidence had been collected, the exposed SSH service was secured.
+
+Network Security Group rules were updated to:
+
+* Remove unrestricted inbound SSH access
+* Allow only the administrator's trusted public IP
+* Block all other inbound SSH connections
+
+This immediately reduced the attack surface and prevented further brute-force attempts.
+
+---
+
+# 📊 Key Findings
+
+* Internet-facing SSH services are discovered by attackers within minutes.
+* Microsoft Sentinel provides rapid visibility into authentication attacks.
+* KQL enables powerful log analysis with minimal overhead.
+* OSINT significantly improves investigation context.
+* ASN and BGP analysis reveals attacker infrastructure beyond individual IP addresses.
+* Sentinel Watchlists improve detection efficiency and scalability.
+* Network Security Groups provide effective perimeter containment.
+
+---
+
+# 🧠 Skills Demonstrated
+
+* Cloud Security Engineering
+* SIEM Administration
+* Microsoft Sentinel
+* Azure Log Analytics
+* Kusto Query Language (KQL)
+* Threat Hunting
+* Digital Forensics
+* Incident Response
+* Open Source Intelligence (OSINT)
+* Threat Intelligence
+* Network Security
+* Infrastructure Mapping
+* Linux Administration
+* Security Monitoring
+
+---
+
+# 🚀 Future Improvements
+
+* Deploy Sentinel Analytics Rules
+* Configure Automated Incident Creation
+* Integrate Microsoft Defender for Cloud
+* Create MITRE ATT&CK mappings
+* Add Logic Apps for automated response
+* Integrate Threat Intelligence feeds
+* Build Sentinel Workbooks for visualization
+* Monitor multiple Azure virtual machines
+
+---
+
+## 📚 References
+
+* Microsoft Sentinel
+* Azure Log Analytics
+* Kusto Query Language (KQL)
+* AbuseIPDB
+* Hurricane Electric BGP Toolkit
+
+---
+
+## 👤 Author
+
+**Karol**
+
+Cybersecurity Graduate | Cloud Security | SIEM | Threat Hunting | Digital Forensics
+
+---
+
+*This project was created for educational purposes to demonstrate cloud security monitoring, threat detection, and incident response using Microsoft Sentinel.*
